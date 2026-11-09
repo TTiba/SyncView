@@ -189,3 +189,7 @@ O log do app fica em `~/Library/Logs/SyncView.log`.
 - **Sem HDR e sem áudio.**
 - **Notch:** a câmera frontal do tablet cobre um pedacinho do topo da imagem.
 - **Assinatura local:** o app do Mac é assinado com um certificado local (`mac/setup-signing.sh`), não com um Developer ID. Cada Mac gera o seu próprio certificado ao compilar.
+
+## Licença
+
+[MIT](LICENSE). Use, modifique e redistribua à vontade, mantendo o aviso de copyright.
