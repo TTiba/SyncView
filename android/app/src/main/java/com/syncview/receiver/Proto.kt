@@ -12,6 +12,7 @@ object Proto {
     const val HELLO: Int = 0x01
     const val REQUEST_KEYFRAME: Int = 0x02
     const val PING: Int = 0x03
+    const val BYE: Int = 0x04 // usuário fechou o app: o Mac remove o monitor na hora
     const val POINTER: Int = 0x10
     const val SCROLL: Int = 0x11
 
@@ -56,6 +57,8 @@ object Proto {
         b.putFloat(nx).putFloat(ny).putFloat(dx).putFloat(dy)
         return packet(SCROLL, b.array())
     }
+
+    fun bye(): ByteArray = packet(BYE)
 
     fun ping(): ByteArray = packet(PING, ByteBuffer.allocate(8).putLong(System.nanoTime()).array())
 }

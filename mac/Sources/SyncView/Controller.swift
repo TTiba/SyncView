@@ -61,6 +61,11 @@ final class Controller {
     /// Mantém o monitor virtual vivo após uma desconexão breve (cabo mexeu),
     /// para as janelas não pularem para a tela do MacBook.
     private let displayGraceSeconds: Double = 30
+    /// O usuário tocou em "Sair" no tablet: remove o monitor virtual na hora.
+    private var userQuit = false
+    /// Sessão atual limitada por estar num link USB 2.0.
+    private(set) var usb2Limited = false
+    static let usb2MaxMbps = 50
 
     func start() {
         input.invertScroll = Settings.invertScroll
@@ -103,6 +108,9 @@ final class Controller {
             }
         case Proto.ping:
             server.send(Proto.packet(Proto.pong, payload))
+        case Proto.bye:
+            Log.info("Tablet: usuário fechou o SyncView")
+            DispatchQueue.main.async { self.userQuit = true }
         case Proto.requestKeyframe:
             Log.info("Tablet pediu keyframe")
             requestKeyframe()
@@ -157,7 +165,13 @@ final class Controller {
         // H.264 não sustenta 120 fps nessa resolução (medido: ~92 fps), então
         // a captura fica em 60 fps; o monitor virtual continua a 120 Hz.
         let streamFPS = codec == .h264 ? min(fps, 60) : fps
-        guard let enc = VideoEncoder(width: w, height: ht, fps: streamFPS, codec: codec, bitrateMbps: Settings.bitrateMbps) else {
+        // USB 2.0 (480 Mbps) não aguenta 100–200 Mbps pelo túnel do adb: o adbd
+        // do tablet trava e o tablet fica "offline". Limita a 50 Mbps nesse caso.
+        let link = ADBManager.usbLinkSpeedMbps()
+        usb2Limited = (link ?? 5000) <= 480 && Settings.bitrateMbps > Self.usb2MaxMbps
+        let bitrate = usb2Limited ? Self.usb2MaxMbps : Settings.bitrateMbps
+        if usb2Limited { Log.info("Cabo/porta USB 2.0 (\(link ?? 0) Mbps): taxa limitada a \(bitrate) Mbps") }
+        guard let enc = VideoEncoder(width: w, height: ht, fps: streamFPS, codec: codec, bitrateMbps: bitrate) else {
             fail("Falha ao criar o encoder de vídeo.")
             return
         }
@@ -243,8 +257,10 @@ final class Controller {
         enqueueCapture { [weak self] in await self?.capturer.stop() }
         if let a = activity { ProcessInfo.processInfo.endActivity(a); activity = nil }
 
+        let grace = userQuit ? 0.3 : displayGraceSeconds
+        userQuit = false
         if wasStreaming, display != nil {
-            Log.info("Monitor virtual será removido em \(Int(displayGraceSeconds)) s se o tablet não voltar")
+            if grace >= 1 { Log.info("Monitor virtual será removido em \(Int(grace)) s se o tablet não voltar") }
             let work = DispatchWorkItem { [weak self] in
                 guard let self, !self.isStreaming else { return }
                 Log.info("Removendo monitor virtual")
@@ -253,7 +269,7 @@ final class Controller {
                 self.onUpdate?()
             }
             removeDisplayWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + displayGraceSeconds, execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + grace, execute: work)
         }
         onUpdate?()
     }

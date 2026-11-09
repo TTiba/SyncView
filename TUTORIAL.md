@@ -38,8 +38,9 @@ Mac                                                      Galaxy Tab S9 Ultra
 ## 1. O que você precisa
 
 - **Cabo USB‑C ↔ USB‑C de dados.** De preferência USB 3 (5 ou 10 Gbps), ligado **direto** numa porta do Mac, sem hub.
-  - O cabo que vem com o tablet funciona, mas costuma ser USB 2.
-  - USB 2 aguenta as qualidades "Equilibrada" e "Alta". Para "Máxima (200 Mbps)", use USB 3.
+  - O cabo que vem com o tablet é **USB 2 (480 Mbps)**. Ele funciona, mas no limite.
+  - Num link USB 2, o SyncView limita a qualidade a **50 Mbps** sozinho. Acima disso, o adb do tablet chega a travar e o tablet fica "offline". O menu avisa quando isso acontece.
+  - Para usar "Alta (100)" ou "Máxima (200 Mbps)", use um cabo USB 3 (5 ou 10 Gbps).
 - As ferramentas já ficaram instaladas neste Mac via Homebrew: `adb`, JDK 21, Gradle e Android SDK.
 
 ## 2. Preparar o tablet (uma vez só)
@@ -93,7 +94,7 @@ Enquanto faltar alguma permissão, o menu do SyncView mostra um item "⚠︎ Per
 3. **Posicione o monitor:** clique no ícone do SyncView › **Organizar monitores…** e arraste o tablet para o lado certo do MacBook. O macOS lembra essa posição nas próximas conexões.
 4. **Confira os 120 Hz:**
    - No Mac: Ajustes › Monitores › selecione o tablet › *Taxa de atualização* deve mostrar **120 Hz**.
-   - No tablet: **toque com 3 dedos** para abrir as estatísticas. Mexa uma janela ou role uma página. O ideal é:
+   - No tablet: **toque com 3 dedos** para abrir o menu do SyncView e toque em **Mostrar estatísticas**. Mexa uma janela ou role uma página. O ideal é:
      ```
      HEVC 2960x1848 · alvo 120 fps
      exibidos ~120 fps · tela 120 Hz
@@ -133,8 +134,9 @@ Não precisa rodar `instalar.sh` de novo, nem dar permissões, nem aceitar a dep
 |---|---|
 | O ícone do SyncView não está na barra de menus | Abra o SyncView pelo Launchpad |
 | O tablet não abriu o app sozinho | Toque no ícone SyncView no tablet. Isso acontece, por exemplo, se o tablet estava bloqueado na hora de plugar |
-| Você fechou o app no tablet e quer voltar | Abra de novo pelo ícone. Por até 30 s, o monitor continua no Mac esperando |
-| Quer encerrar | Desplugue o cabo ou feche o app no tablet. Em 30 s o monitor some do Mac e as janelas voltam para o MacBook |
+| Quer encerrar | No tablet, **toque com 3 dedos** (ou faça o gesto de voltar) › **Sair do SyncView**. O monitor some do Mac na hora e as janelas voltam para o MacBook |
+| Você fechou o app no tablet e quer voltar | Abra de novo pelo ícone SyncView no tablet |
+| O cabo soltou | Replugue em até 30 s: o monitor continua no Mac esperando e as janelas não pulam |
 
 ### Gestos no tablet
 
@@ -146,8 +148,19 @@ Não precisa rodar `instalar.sh` de novo, nem dar permissões, nem aceitar a dep
 | Tocar com 2 dedos | Clique direito |
 | S Pen pairando | Move o cursor |
 | S Pen encostando | Clique ou arrasto. Com o botão lateral apertado, vira clique direito |
-| Tocar com 3 dedos | Mostra/oculta as estatísticas |
-| Deslizar da borda | Mostra as barras do Android (somem sozinhas) |
+| Tocar com 3 dedos | Abre o **menu do SyncView** no tablet |
+| Gesto de voltar (deslizar da borda lateral) | Também abre/fecha o menu |
+| Deslizar da borda de baixo | Mostra as barras do Android (somem sozinhas) |
+
+### Menu do SyncView no tablet
+
+Abre com um toque de 3 dedos ou com o gesto de voltar. Tem quatro opções:
+- **Voltar para a tela**;
+- **Mostrar/ocultar estatísticas** (fps, Mbps, Hz, latência);
+- **Reconectar**;
+- **Sair do SyncView**, que fecha o app e avisa o Mac para remover o monitor na hora.
+
+A tela de espera ("Aguardando o Mac…") também tem os botões **Reconectar** e **Sair do SyncView**.
 
 ### Menu do SyncView no Mac
 
@@ -158,7 +171,8 @@ Não precisa rodar `instalar.sh` de novo, nem dar permissões, nem aceitar a dep
 - **Qualidade:** 50, 100 (padrão) ou 200 Mbps. Suba se notar borrão ao rolar textos.
 - **Codec:** HEVC, que dá 120 fps (padrão), ou H.264, até 60 fps, só como plano B.
 - **Inverter direção da rolagem**, se ela parecer ao contrário.
-- **Reconectar** e **Abrir log** (`~/Library/Logs/SyncView.log`).
+- **Reconectar:** reinicia o servidor do adb e a conexão. Resolve a maioria dos travamentos.
+- **Abrir log** (`~/Library/Logs/SyncView.log`).
 
 ## 7. Solução de problemas
 
@@ -168,10 +182,13 @@ Não precisa rodar `instalar.sh` de novo, nem dar permissões, nem aceitar a dep
 | "Autorize a depuração USB na tela do tablet" | Aceite o aviso no tablet, marcando "Sempre permitir" |
 | "adb não encontrado" | Rode `brew install android-platform-tools` |
 | Tablet mostra "Aguardando o Mac…" para sempre | SyncView fechado no Mac ou sem permissão de Gravação de Tela. Veja o menu e o log |
+| Caiu sozinho e não volta; `adb devices` mostra **offline** ou nada | O adb do tablet travou (quase sempre por excesso de dados num cabo USB 2). O Mac reinicia o adb sozinho; se continuar "offline", **desplugue e replugue o cabo**. Para evitar, use cabo USB 3 |
+| O app abriu numa janela pequena no tablet | O Samsung abriu em "janela pop-up". Toque em ⛶ (tela cheia) na barra da janela |
 | Aviso "limitado a 60 Hz" no tablet | Suavidade de movimento › **Adaptável** |
 | Estatísticas mostram "tela 60 Hz" | Economia de energia ligada, ou o tablet está esquentando e reduzindo a taxa |
 | Imagem trava e volta após ~1 s | Cabo ruim ou porta frouxa. Troque de cabo/porta. O app se recupera sozinho |
 | Menu mostra "quadros pulados" | O cabo não está dando conta. Use USB 3 ou baixe a Qualidade |
+| Menu mostra "Cabo USB 2.0: qualidade limitada" | O link USB é de 480 Mbps. Funciona, mas troque por um cabo USB 3 para usar 100–200 Mbps |
 | Toque não faz nada | Falta a permissão de Acessibilidade (passo 4) |
 | Conflito com o Android Studio | Android Studio e Homebrew podem ter versões diferentes de `adb` brigando. Use uma só |
 | Depois de recompilar, a imagem não aparece | Refaça as permissões do passo 4 |

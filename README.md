@@ -53,6 +53,8 @@ Mac                                                      Galaxy Tab S9 Ultra
 
 - **Estável:**
   - o túnel USB é refeito a cada 2 s;
+  - se o servidor do adb perder o tablet com o cabo ligado, o Mac reinicia o adb sozinho;
+  - num cabo USB 2.0, a taxa cai sozinha para 50 Mbps, para não travar o adb do tablet;
   - o tablet reconecta sozinho;
   - um watchdog refaz a conexão após 4 s de silêncio;
   - se o cabo soltar, o monitor virtual continua existindo por 30 s, então as janelas não pulam para a tela do MacBook.
@@ -61,7 +63,8 @@ Mac                                                      Galaxy Tab S9 Ultra
   - toque = clique;
   - dois dedos = rolagem com inércia;
   - toque com dois dedos = clique direito;
-  - S Pen pairando move o cursor.
+  - S Pen pairando move o cursor;
+  - toque com três dedos ou gesto de voltar = menu no tablet (estatísticas, reconectar, sair).
 
 ## Desempenho medido
 
@@ -81,7 +84,7 @@ Medido num MacBook Pro M4 Pro, macOS 27.2, com o Galaxy Tab S9 Ultra:
 - Mac com Apple Silicon e macOS 14 ou superior, com as Command Line Tools do Xcode (`xcode-select --install`).
 - [Homebrew](https://brew.sh) e `adb`: `brew install android-platform-tools`.
 - Galaxy Tab S9 Ultra. Outros tablets Android 11+ com decodificador HEVC devem funcionar, mas não foram testados.
-- Cabo USB‑C de dados, de preferência USB 3, ligado direto no Mac.
+- Cabo USB‑C de dados **USB 3**, ligado direto no Mac. O cabo que vem com o tablet é USB 2: funciona, mas o SyncView limita a taxa a 50 Mbps nele.
 - Para compilar o APK: `brew install openjdk@21 gradle && brew install --cask android-commandlinetools`. Se preferir, baixe o APK pronto na aba **Releases**.
 
 ## Instalação rápida
@@ -112,7 +115,7 @@ O passo a passo completo, com solução de problemas, está no **[TUTORIAL.md](T
 | Arrastar com 2 dedos | Rolagem com inércia |
 | Tocar com 2 dedos | Clique direito |
 | S Pen pairando / encostando | Mover cursor / clicar e arrastar (botão lateral = clique direito) |
-| Tocar com 3 dedos | Mostrar/ocultar estatísticas (fps, Mbps, Hz, latência de rede) |
+| Tocar com 3 dedos ou gesto de voltar | Menu do SyncView: estatísticas (fps, Mbps, Hz, latência), Reconectar, **Sair** |
 
 ## Estrutura
 
@@ -153,6 +156,7 @@ TCP big-endian. Cada pacote tem o formato `[tipo u8][tamanho u32][payload]`.
 | Tablet → Mac | `0x01` HELLO | resolução, Hz, dpi, suporte a HEVC, diagonal, nome |
 | Tablet → Mac | `0x02` KEYFRAME | pedido de quadro-chave |
 | Tablet → Mac | `0x03` PING | timestamp, a cada 500 ms |
+| Tablet → Mac | `0x04` BYE | usuário saiu; o Mac remove o monitor na hora |
 | Tablet → Mac | `0x10` POINTER | ação, botão, x, y normalizados |
 | Tablet → Mac | `0x11` SCROLL | x, y, dx, dy |
 | Mac → Tablet | `0x81` STREAM_START | codec, largura, altura, fps |

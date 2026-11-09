@@ -49,6 +49,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if controller.statDropped > 0 { s += " · \(controller.statDropped) quadros pulados" }
             menu.addItem(disabled(s))
         }
+        if controller.isStreaming, controller.usb2Limited {
+            menu.addItem(disabled("⚠︎ Cabo USB 2.0: qualidade limitada a \(Controller.usb2MaxMbps) Mbps (use um cabo USB 3)"))
+        }
         if let err = controller.lastError { menu.addItem(disabled("⚠︎ \(err)")) }
         if !CGPreflightScreenCaptureAccess() {
             menu.addItem(action("⚠︎ Permitir Gravação de Tela…", #selector(openScreenRecording)))
@@ -139,7 +142,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             Log.error("Abrir ao iniciar sessão: \(error.localizedDescription)")
         }
     }
-    @objc private func reconnect() { controller.restartSession() }
+    @objc private func reconnect() {
+        controller.adb.restartServer(reason: "menu Reconectar")
+        controller.restartSession()
+    }
     @objc private func openLog() { NSWorkspace.shared.open(Log.url) }
     @objc private func openDisplays() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Displays-Settings.extension")!)

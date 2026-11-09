@@ -11,6 +11,7 @@ enum Proto {
     static let hello: UInt8 = 0x01
     static let requestKeyframe: UInt8 = 0x02
     static let ping: UInt8 = 0x03
+    static let bye: UInt8 = 0x04     // o usuário fechou o app no tablet
     static let pointer: UInt8 = 0x10
     static let scroll: UInt8 = 0x11
 

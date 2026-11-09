@@ -14,7 +14,7 @@ import kotlin.math.hypot
  *    botão lateral pressionado ao encostar = clique direito.
  *  • 1 dedo: toque = clique (2 toques = duplo clique); tocar e arrastar = arrastar.
  *  • 2 dedos: arrastar = rolagem (com inércia); toque rápido = clique direito.
- *  • 3 dedos: toque = mostra/oculta estatísticas.
+ *  • 3 dedos: toque = abre o menu do SyncView.
  */
 class TouchHandler(
     private val view: View,
