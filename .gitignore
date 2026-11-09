@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Mac app (Swift Package Manager)
+mac/.build/
+mac/build.noindex/
+mac/.swiftpm/
+*.iconset/.DS_Store
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/
+*.keystore
+
+# Binários gerados (o APK vai como Release no GitHub)
+dist/
