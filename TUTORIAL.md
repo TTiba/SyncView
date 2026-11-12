@@ -183,7 +183,9 @@ A tela de espera ("Aguardando o Mac…") também tem os botões **Reconectar** e
 | "Autorize a depuração USB na tela do tablet" | Aceite o aviso no tablet, marcando "Sempre permitir" |
 | "adb não encontrado" | Rode `brew install android-platform-tools` |
 | Tablet mostra "Aguardando o Mac…" para sempre | SyncView fechado no Mac ou sem permissão de Gravação de Tela. Veja o menu e o log |
-| Caiu sozinho; `adb devices` mostra **offline** ou nada | O link USB travou. O Mac resolve sozinho: reinicia o adb e "repluga" o cabo por software, e a imagem volta em ~10 s, sem as janelas saírem do lugar. Para forçar na hora, use **Reconectar** no menu. Se nem isso resolver, tire e coloque o cabo. Cabo USB 3 reduz bastante essas quedas |
+| Caiu sozinho; `adb devices` mostra **offline** ou nada | O link USB travou. O Mac resolve sozinho: reinicia o adb e "repluga" o cabo por software, e a imagem volta em ~10 s, sem as janelas saírem do lugar. Para forçar na hora, use **Reconectar** no menu |
+| Quedas seguidas | O cabo está corrompendo dados. O SyncView reduz a taxa sozinho (50 → 35 → 25 → 15 Mbps) e volta a subir depois de 30 min estável. Depois de 3 tentativas sem sucesso, ele para de insistir e o menu pede para **tirar e colocar o cabo**. A solução definitiva é trocar o cabo |
+| Como testar o cabo | Com o SyncView fechado, mande e traga 200 MB cinco vezes: `mkfile 200m /tmp/t.bin; for i in 1 2 3 4 5; do adb push /tmp/t.bin /data/local/tmp/t.bin && adb pull /data/local/tmp/t.bin /tmp/t2.bin \|\| break; done`. Um link bom faz tudo sem erro (~35 MB/s em USB 2, bem mais em USB 3). Se falhar com `read failed` ou o tablet sumir do `adb devices`, o cabo ou uma das portas (Mac ou tablet) está ruim: troque um de cada vez para achar qual |
 | O app abriu numa janela pequena no tablet | O Samsung abriu em "janela pop-up". Toque em ⛶ (tela cheia) na barra da janela |
 | Aviso "limitado a 60 Hz" no tablet | Suavidade de movimento › **Adaptável** |
 | Estatísticas mostram "tela 60 Hz" | Economia de energia ligada, ou o tablet está esquentando e reduzindo a taxa |

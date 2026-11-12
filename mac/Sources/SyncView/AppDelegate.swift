@@ -49,6 +49,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if controller.statDropped > 0 { s += " · \(controller.statDropped) quadros pulados" }
             menu.addItem(disabled(s))
         }
+        if controller.adb.needsManualReplug {
+            menu.addItem(disabled("⚠︎ O cabo travou: tire e coloque o cabo do tablet"))
+            menu.addItem(disabled("   (ou clique em Reconectar; se repetir, troque o cabo)"))
+        }
+        if let cap = controller.unstableCapMbps {
+            menu.addItem(disabled("⚠︎ Cabo instável: taxa reduzida para \(cap) Mbps até estabilizar"))
+        }
         if controller.isStreaming, controller.usb2Limited {
             menu.addItem(disabled("⚠︎ Cabo USB 2.0: qualidade limitada a \(Controller.usb2MaxMbps) Mbps (use um cabo USB 3)"))
         }

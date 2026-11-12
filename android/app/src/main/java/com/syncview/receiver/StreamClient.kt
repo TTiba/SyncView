@@ -64,7 +64,13 @@ class StreamClient(
         var attempt = 0
         while (running) {
             try {
-                listener.onStatus(macMessage ?: if (attempt < 2) "Conectando ao Mac…" else "Aguardando o Mac…", false)
+                val waiting = when {
+                    attempt < 2 -> "Conectando ao Mac…"
+                    // ~20 s sem conseguir: o Mac já tentou religar o USB sozinho.
+                    attempt >= 22 -> "Aguardando o Mac…\nSe demorar, tire e coloque o cabo USB."
+                    else -> "Aguardando o Mac…"
+                }
+                listener.onStatus(macMessage ?: waiting, false)
                 session()
                 attempt = 0
             } catch (e: Exception) {

@@ -30,6 +30,10 @@ final class ADBManager {
     private var lostSince: Date?
     private var lastServerRestart = Date.distantPast
     private var failedRestarts = 0
+    /// Depois de 3 tentativas seguidas sem sucesso, para de "replugar" sozinho
+    /// (o cabo está ruim demais) e pede ao usuário para replugar de verdade.
+    private(set) var needsManualReplug = false
+    private static let maxAutoRecoveries = 3
     private var consecutiveTimeouts = 0
 
     func start() {
@@ -92,7 +96,10 @@ final class ADBManager {
         }
         knownDevices = current
 
-        if !ready.isEmpty { failedRestarts = 0 }
+        if !ready.isEmpty {
+            failedRestarts = 0
+            if needsManualReplug { needsManualReplug = false; Log.info("Tablet de volta no USB") }
+        }
         if let first = ready.first { state = .ready(serial: first.0, model: first.1) }
         else if unauthorized { state = .unauthorized }
         else { state = .noDevice }
@@ -119,9 +126,17 @@ final class ADBManager {
         // cabo por software (reenumeração USB) resolve sempre. Então já faz
         // os dois na primeira tentativa. Se repetir, espera 10 s, 20 s… até 2 min.
         let wait = failedRestarts == 0 ? 0 : min(10 * pow(2, Double(failedRestarts - 1)), 120)
+        if !force && failedRestarts >= Self.maxAutoRecoveries {
+            if !needsManualReplug {
+                needsManualReplug = true
+                Log.error("O cabo não se recuperou após \(Self.maxAutoRecoveries) tentativas: tire e coloque o cabo do tablet (e, se puder, troque por um cabo USB 3)")
+                let s = state; DispatchQueue.main.async { self.onStateChange?(s) }
+            }
+            return
+        }
         guard force || Date().timeIntervalSince(lastServerRestart) > wait else { return }
         lastServerRestart = Date()
-        if !force { failedRestarts += 1 }
+        if force { failedRestarts = 0; needsManualReplug = false } else { failedRestarts += 1 }
         lostSince = nil
         consecutiveTimeouts = 0
         Log.info("Reiniciando o servidor do adb (\(reason))")

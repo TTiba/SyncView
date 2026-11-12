@@ -66,6 +66,14 @@ final class Controller {
     /// Sessão atual limitada por estar num link USB 2.0.
     private(set) var usb2Limited = false
     static let usb2MaxMbps = 50
+    /// Teto aprendido com quedas seguidas (cabo instável). nil = sem teto.
+    /// Cada sessão que cai em menos de 5 min desce um degrau; uma sessão de
+    /// 30 min sem cair sobe um degrau. Menos dados = menos chance de erro no cabo.
+    private(set) var unstableCapMbps: Int?
+    private static let unstableSteps = [35, 25, 15]
+    private var sessionStartedAt: Date?
+    private var sessionBitrate = 0
+    private var intentionalRestart = false
 
     func start() {
         input.invertScroll = Settings.invertScroll
@@ -169,8 +177,13 @@ final class Controller {
         // do tablet trava e o tablet fica "offline". Limita a 50 Mbps nesse caso.
         let link = ADBManager.usbLinkSpeedMbps()
         usb2Limited = (link ?? 5000) <= 480 && Settings.bitrateMbps > Self.usb2MaxMbps
-        let bitrate = usb2Limited ? Self.usb2MaxMbps : Settings.bitrateMbps
+        var bitrate = usb2Limited ? Self.usb2MaxMbps : Settings.bitrateMbps
         if usb2Limited { Log.info("Cabo/porta USB 2.0 (\(link ?? 0) Mbps): taxa limitada a \(bitrate) Mbps") }
+        if let cap = unstableCapMbps, cap < bitrate {
+            bitrate = cap
+            Log.info("Conexão instável: taxa reduzida para \(cap) Mbps")
+        }
+        sessionBitrate = bitrate
         guard let enc = VideoEncoder(width: w, height: ht, fps: streamFPS, codec: codec, bitrateMbps: bitrate) else {
             fail("Falha ao criar o encoder de vídeo.")
             return
@@ -183,12 +196,16 @@ final class Controller {
         server.send(Proto.packet(Proto.streamStart, start))
 
         lock.lock()
-        encoder?.invalidate()
+        let oldEncoder = encoder
         encoder = enc
         needKeyframe = true
         lastPixelBuffer = nil
         streaming = true
         lock.unlock()
+        // Fora do lock: o invalidate espera o último quadro sair, e o callback
+        // desse quadro (sendFrame) também pega o lock — dentro dele, trava tudo.
+        oldEncoder?.invalidate()
+        sessionStartedAt = Date()
 
         if activity == nil {
             activity = ProcessInfo.processInfo.beginActivity(
@@ -248,15 +265,21 @@ final class Controller {
         lock.lock()
         let wasStreaming = streaming
         streaming = false
-        encoder?.invalidate()
+        let oldEncoder = encoder
         encoder = nil
         lastPixelBuffer = nil
         lock.unlock()
+        oldEncoder?.invalidate() // fora do lock (ver beginSession)
         inputQueue.async { self.input.releaseAll() }
         sessionID += 1
         enqueueCapture { [weak self] in await self?.capturer.stop() }
         if let a = activity { ProcessInfo.processInfo.endActivity(a); activity = nil }
 
+        if wasStreaming, !userQuit, !intentionalRestart, let start = sessionStartedAt {
+            adaptToDrop(sessionLasted: Date().timeIntervalSince(start))
+        }
+        intentionalRestart = false
+        sessionStartedAt = nil
         let grace = userQuit ? 0.3 : displayGraceSeconds
         userQuit = false
         if wasStreaming, display != nil {
@@ -275,7 +298,24 @@ final class Controller {
     }
 
     /// Reinicia a sessão (o tablet reconecta sozinho em ~1 s) para aplicar codec/bitrate.
-    func restartSession() { server.disconnect() }
+    func restartSession() {
+        intentionalRestart = true
+        server.disconnect()
+    }
+
+    /// Ajusta o teto de taxa conforme a sessão que acabou de cair.
+    private func adaptToDrop(sessionLasted t: TimeInterval) {
+        let steps = Self.unstableSteps
+        if t < 5 * 60 {
+            guard let next = steps.first(where: { $0 < sessionBitrate }) else { return }
+            unstableCapMbps = next
+            Log.info("Queda após \(Int(t)) s: próxima sessão a \(next) Mbps")
+        } else if t > 30 * 60, let cap = unstableCapMbps {
+            let i = steps.firstIndex(of: cap) ?? 0
+            unstableCapMbps = i == 0 ? nil : steps[i - 1]
+            Log.info("Sessão estável por \(Int(t / 60)) min: teto de taxa relaxado para \(unstableCapMbps.map { "\($0) Mbps" } ?? "nenhum")")
+        }
+    }
 
     func applyScale(_ s: DisplayScale) {
         Settings.scale = s
