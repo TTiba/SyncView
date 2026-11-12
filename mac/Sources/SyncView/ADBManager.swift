@@ -1,5 +1,6 @@
 import Foundation
 import IOKit
+import CGVirtualDisplayPrivate
 
 /// Mantém o túnel USB (adb reverse tcp:52020) sempre ativo e abre o app no
 /// tablet quando ele é plugado. Também "ressuscita" o servidor do adb quando
@@ -100,7 +101,10 @@ final class ADBManager {
         // do adb não lista o tablet ou o mostra "offline": reinicia o servidor.
         if ready.isEmpty && !unauthorized && Self.adbInterfacePresent() {
             if lostSince == nil { lostSince = Date() }
-            if Date().timeIntervalSince(lostSince!) > 6 {
+            // Rápido: o monitor virtual espera 30 s, então dá tempo de voltar
+            // sem as janelas pularem para a tela do MacBook.
+            // (> 3 s: ignora o "offline" passageiro enquanto o adb se conecta.)
+            if Date().timeIntervalSince(lostSince!) > 3 {
                 killServer(reason: offline ? "tablet aparece como offline" : "tablet está no USB mas o adb não o vê")
             }
         } else {
@@ -109,9 +113,12 @@ final class ADBManager {
     }
 
     private func killServer(reason: String, force: Bool = false) {
-        // Intervalo crescente (20 s, 40 s, 80 s… até 3 min) para não brigar com o adb
-        // quando o problema está no tablet (adbd travado: só replugar resolve).
-        let wait = min(20 * pow(2, Double(failedRestarts)), 180)
+        // Quedas observadas: o adb do Mac registra "read/write failed" no USB
+        // (erro de transferência, típico de cabo ruim) e o tablet fica sem
+        // resposta. Reiniciar só o servidor nem sempre basta; "replugar" o
+        // cabo por software (reenumeração USB) resolve sempre. Então já faz
+        // os dois na primeira tentativa. Se repetir, espera 10 s, 20 s… até 2 min.
+        let wait = failedRestarts == 0 ? 0 : min(10 * pow(2, Double(failedRestarts - 1)), 120)
         guard force || Date().timeIntervalSince(lastServerRestart) > wait else { return }
         lastServerRestart = Date()
         if !force { failedRestarts += 1 }
@@ -119,6 +126,9 @@ final class ADBManager {
         consecutiveTimeouts = 0
         Log.info("Reiniciando o servidor do adb (\(reason))")
         _ = run(["kill-server"], timeout: 5)
+        let r = SVUSBReenumerateADBDevice()
+        if r == 0 { Log.info("Cabo USB \"replugado\" por software (reenumeração)") }
+        else if r != -1 { Log.error("Falha ao reenumerar o USB: 0x\(String(UInt32(bitPattern: r), radix: 16))") }
         // O próximo "adb devices" sobe o servidor de novo.
         knownDevices.removeAll()
     }

@@ -53,7 +53,7 @@ Mac                                                      Galaxy Tab S9 Ultra
 
 - **Estável:**
   - o túnel USB é refeito a cada 2 s;
-  - se o servidor do adb perder o tablet com o cabo ligado, o Mac reinicia o adb sozinho;
+  - se o adb perder o tablet com o cabo ligado, o Mac reinicia o adb e, se precisar, "repluga" o cabo por software (reenumeração USB);
   - num cabo USB 2.0, a taxa cai sozinha para 50 Mbps, para não travar o adb do tablet;
   - o tablet reconecta sozinho;
   - um watchdog refaz a conexão após 4 s de silêncio;

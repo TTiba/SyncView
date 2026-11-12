@@ -49,3 +49,9 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 NS_ASSUME_NONNULL_END
+
+/// "Replugar" por software o aparelho com interface ADB (classe 255/66/1):
+/// pede ao macOS que reenumere o dispositivo USB, como se o cabo fosse
+/// tirado e colocado de novo. Retorna 0 (kIOReturnSuccess) se deu certo,
+/// -1 se não há aparelho ADB no USB, ou o código de erro do IOKit.
+int SVUSBReenumerateADBDevice(void);

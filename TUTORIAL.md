@@ -39,6 +39,7 @@ Mac                                                      Galaxy Tab S9 Ultra
 
 - **Cabo USB‑C ↔ USB‑C de dados.** De preferência USB 3 (5 ou 10 Gbps), ligado **direto** numa porta do Mac, sem hub.
   - O cabo que vem com o tablet é **USB 2 (480 Mbps)**. Ele funciona, mas no limite.
+  - **Cabo ruim = quedas.** Se o log do adb (`$TMPDIR/adb.501.log`) mostrar `read failed` ou `write failed`, os dados estão se corrompendo no cabo. O SyncView se recupera sozinho, mas a solução é trocar o cabo. Use um cabo USB‑C ↔ USB‑C **USB 3.2 Gen 2 (10 Gbps), Thunderbolt 4 ou USB4**, de até 1 m. Com o cabo certo, o menu do SyncView deixa de mostrar o aviso "Cabo USB 2.0".
   - Num link USB 2, o SyncView limita a qualidade a **50 Mbps** sozinho. Acima disso, o adb do tablet chega a travar e o tablet fica "offline". O menu avisa quando isso acontece.
   - Para usar "Alta (100)" ou "Máxima (200 Mbps)", use um cabo USB 3 (5 ou 10 Gbps).
 - As ferramentas já ficaram instaladas neste Mac via Homebrew: `adb`, JDK 21, Gradle e Android SDK.
@@ -171,7 +172,7 @@ A tela de espera ("Aguardando o Mac…") também tem os botões **Reconectar** e
 - **Qualidade:** 50, 100 (padrão) ou 200 Mbps. Suba se notar borrão ao rolar textos.
 - **Codec:** HEVC, que dá 120 fps (padrão), ou H.264, até 60 fps, só como plano B.
 - **Inverter direção da rolagem**, se ela parecer ao contrário.
-- **Reconectar:** reinicia o servidor do adb e a conexão. Resolve a maioria dos travamentos.
+- **Reconectar:** reinicia o adb e "repluga" o cabo por software (o tablet some e volta no USB em ~3 s). É o equivalente a tirar e colocar o cabo.
 - **Abrir log** (`~/Library/Logs/SyncView.log`).
 
 ## 7. Solução de problemas
@@ -182,7 +183,7 @@ A tela de espera ("Aguardando o Mac…") também tem os botões **Reconectar** e
 | "Autorize a depuração USB na tela do tablet" | Aceite o aviso no tablet, marcando "Sempre permitir" |
 | "adb não encontrado" | Rode `brew install android-platform-tools` |
 | Tablet mostra "Aguardando o Mac…" para sempre | SyncView fechado no Mac ou sem permissão de Gravação de Tela. Veja o menu e o log |
-| Caiu sozinho e não volta; `adb devices` mostra **offline** ou nada | O adb do tablet travou (quase sempre por excesso de dados num cabo USB 2). O Mac reinicia o adb sozinho; se continuar "offline", **desplugue e replugue o cabo**. Para evitar, use cabo USB 3 |
+| Caiu sozinho; `adb devices` mostra **offline** ou nada | O link USB travou. O Mac resolve sozinho: reinicia o adb e "repluga" o cabo por software, e a imagem volta em ~10 s, sem as janelas saírem do lugar. Para forçar na hora, use **Reconectar** no menu. Se nem isso resolver, tire e coloque o cabo. Cabo USB 3 reduz bastante essas quedas |
 | O app abriu numa janela pequena no tablet | O Samsung abriu em "janela pop-up". Toque em ⛶ (tela cheia) na barra da janela |
 | Aviso "limitado a 60 Hz" no tablet | Suavidade de movimento › **Adaptável** |
 | Estatísticas mostram "tela 60 Hz" | Economia de energia ligada, ou o tablet está esquentando e reduzindo a taxa |
