@@ -53,6 +53,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(disabled("⚠︎ O cabo travou: tire e coloque o cabo do tablet"))
             menu.addItem(disabled("   (ou clique em Reconectar; se repetir, troque o cabo)"))
         }
+        if controller.adb.tabletPoweringMac {
+            menu.addItem(disabled("⚠︎ O tablet está dando carga ao Mac e não carrega:"))
+            menu.addItem(disabled("   tire e coloque o cabo (veja o raio de carga no tablet)"))
+        }
         if let cap = controller.unstableCapMbps {
             menu.addItem(disabled("⚠︎ Cabo instável: taxa reduzida para \(cap) Mbps até estabilizar"))
         }

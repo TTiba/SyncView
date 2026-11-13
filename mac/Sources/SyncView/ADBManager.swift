@@ -33,6 +33,10 @@ final class ADBManager {
     /// Depois de 3 tentativas seguidas sem sucesso, para de "replugar" sozinho
     /// (o cabo está ruim demais) e pede ao usuário para replugar de verdade.
     private(set) var needsManualReplug = false
+    /// O tablet virou a fonte de energia do cabo (dá carga ao Mac em vez de
+    /// carregar). Acontece quando o link USB cai e os dois renegociam os papéis.
+    private(set) var tabletPoweringMac = false
+    private var lastPowerCheck = Date.distantPast
     private static let maxAutoRecoveries = 3
     private var consecutiveTimeouts = 0
 
@@ -47,6 +51,20 @@ final class ADBManager {
     /// Reinicia o servidor do adb (útil no menu "Reconectar").
     func restartServer(reason: String) {
         queue.async { [weak self] in autoreleasepool { self?.killServer(reason: reason, force: true) } }
+    }
+
+    /// Lê no tablet quem fornece energia na porta USB-C (`power_role=source`
+    /// quer dizer que o tablet está alimentando o Mac).
+    private func checkPowerRole(serial: String) {
+        guard let out = run(["-s", serial, "shell", "dumpsys usb | grep -m1 power_role="], timeout: 4) else { return }
+        let role = out.split(separator: "=").last.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard role == "source" || role == "sink" else { return }
+        let powering = role == "source"
+        guard powering != tabletPoweringMac else { return }
+        tabletPoweringMac = powering
+        if powering { Log.error("O tablet está dando carga ao Mac (e não carrega): tire e coloque o cabo") }
+        else { Log.info("O tablet voltou a receber carga do Mac") }
+        let s = state; DispatchQueue.main.async { self.onStateChange?(s) }
     }
 
     private func findADB() -> String? {
@@ -96,6 +114,11 @@ final class ADBManager {
         }
         knownDevices = current
 
+        if let (serial, _) = ready.first {
+            if Date().timeIntervalSince(lastPowerCheck) > 15 { lastPowerCheck = Date(); checkPowerRole(serial: serial) }
+        } else if tabletPoweringMac {
+            tabletPoweringMac = false
+        }
         if !ready.isEmpty {
             failedRestarts = 0
             if needsManualReplug { needsManualReplug = false; Log.info("Tablet de volta no USB") }
